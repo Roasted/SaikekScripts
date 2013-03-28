@@ -58,14 +58,14 @@ end;
 //Gets our current in-game state.
 function GetState: Integer;
 begin
-  if(not P07_LoggedIn) then
+  if (GFailSafe >= GFAILSAFE_THRESHOLD) then
+    Result := 3
+  else if(not P07_LoggedIn) then
     Result := 2
   else if(InCombat) then
     Result := 1
   else if(not InCombat) then
     Result := 0
-  else if (GFailSafe >= GFAILSAFE_THRESHOLD) then
-    Result := 3
 end;
 
 //Sets camera angle to maximum and sets auto-retaliate.
@@ -77,14 +77,15 @@ begin
   P07_AutoRetaliate(true);
   wait(randomrange(300,500));
   P07_TabInventoryTab(4);
+  P07_MakeCompassDegree(0);
 end;
 
 //Our quick and simple anti-ban. Could use some work.
 procedure AntiBan;
 var ran1, ran2: Integer;
 begin
-     ran1 := random(600);
-     if(ran1 <= 8) then
+     ran1 := random(800);
+     if(ran1 <= 5) then
      begin
       writeln('Anti-Ban Engaged.');
       ran2 := random(10);
@@ -131,7 +132,6 @@ begin
         end;
       3:
         begin
-          writeln('FailSafe initiated! Possibly stuck or in random? Terminating script.');
           break;
         end;
     end;
