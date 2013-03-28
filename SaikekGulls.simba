@@ -83,7 +83,7 @@ end;
 procedure AntiBan;
 var ran1, ran2: Integer;
 begin
-     ran1 := random(150);
+     ran1 := random(600);
      if(ran1 <= 8) then
      begin
       writeln('Anti-Ban Engaged.');
