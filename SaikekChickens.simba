@@ -1,26 +1,33 @@
 program SaikekChickens;
 {$DEFINE SMART8}
-{$I SRL/SRL.Simba}
-{$I P07Include.Simba}
+{$I SRL-OSR/SRL.Simba}
 
-//DO NOT EDIT THESE UNLESS YOU KNOW WHAT YOU ARE EDITING!
 var
   GFailSafe: Integer;
 const
+  //Begin User-config
+  PLAYER_USERNAME ='';
+  PLAYER_PASSWORD ='';
+  PLAYER_NICK = ''; //THIS MUST BE SET OR SCRIPT WILL CRASH!
+  PICKUP_FEATHERS = True;
+  //End User-config
   HPCOLOUR = 65280;
   CHICKENCOLOUR1 = 1682130;
   CHICKENCOLOUR2 = 1056403;
+  CHICKENCOLOUR3 = 1122202;
+  CHICKENCOLOUR4 = 5360868;
   FEATHERCOLOUR2 = 9472;
   GFAILSAFE_THRESHOLD = 25;
-  PICKUP_FEATHERS = True; //Change 'True' to 'False' if you do not wish to pick up feathers.
 
-//Begin User-config. Please provide your username and password.
-procedure P07_DeclarePlayer;
+procedure DeclarePlayers;
 begin
-  P07_PlayerName := ''; //Your username here.
-  P07_PlayerPass := ''; //Your password here.
+  HowManyPlayers := 1;
+  NumberOfPlayers(HowManyPlayers);
+  Players[0].Name := PLAYER_USERNAME;
+  Players[0].Pass := PLAYER_PASSWORD;
+  Players[0].Nick := PLAYER_NICK;
+  Players[0].Active := True;
 end;
-//End User-config
 
 //Simple function which checks for HPCOLOUR in a defined area.
 //May bug out when multiple players are in area.
@@ -40,10 +47,11 @@ var x, y, failsafe: Integer;
 begin
   if(not InCombat) then
   begin
-    if(P07_FindObjCustom(x, y, ['ttack', 'hicken'], [CHICKENCOLOUR1, CHICKENCOLOUR2], 7)) then
+    if(FindObjCustom(x, y, ['Chicken'], [CHICKENCOLOUR1, CHICKENCOLOUR2, CHICKENCOLOUR3, CHICKENCOLOUR4], 7)) then
     begin
       GFailSafe := 0;
-      P07_MouseBox(x, y, x, y, mouse_left);
+      MMouse(x, y, 3, 3);
+      ClickMouse2(mouse_left);
       repeat
         wait(randomrange(300,800));
         inc(failsafe);
@@ -51,9 +59,9 @@ begin
     end else
     begin
       writeln('No Chickens found. Rotating camera.');
-      P07_MakeCompassDegree(randomrange(0,360));
+      MakeCompass(randomrange(0,360));
       inc(GFailSafe);
-      wait(randomrange(500,1000));
+      wait(randomrange(200,800));
     end;
   end;
 end;
@@ -63,9 +71,9 @@ var x, y: Integer;
 begin
   if((not InCombat) and (PICKUP_FEATHERS)) then
   begin
-    if(P07_FindObjCustom(x, y, ['eather'], [FEATHERCOLOUR2], 3)) then
+    if(FindObjCustom(x, y, ['eather'], [FEATHERCOLOUR2], 3)) then
     begin
-      P07_Mousebox(x, y, x, y, mouse_left);
+      Mousebox(x, y, x, y, mouse_left);
       wait(randomrange(1000,1500));
     end;
   end;
@@ -76,7 +84,7 @@ function GetState: Integer;
 begin
   if (GFailSafe >= GFAILSAFE_THRESHOLD) then
     Result := 3
-  else if(not P07_LoggedIn) then
+  else if(not LoggedIn) then
     Result := 2
   else if(InCombat) then
     Result := 1
@@ -88,21 +96,40 @@ end;
 procedure Setup;
 var x, y: Integer;
 begin
-  P07_MakeCameraAngleHigh;
+  KeyDown(VK_UP);
+  wait(randomrange(1500,2500));
+  KeyUp(VK_UP);
+  Retaliate(true);
   wait(randomrange(300,500));
-  P07_AutoRetaliate(true);
-  wait(randomrange(300,500));
-  P07_TabInventoryTab(4);
-  P07_MakeCompassDegree(0);
+  MakeCompass('N');
+end;
+
+function RandomCombatSkill : String;
+var ran: Integer;
+begin
+  ran := randomrange(0,4);
+  case(ran) of
+    0:
+      Result := 'Attack';
+    1:
+      Result := 'Strength';
+    2:
+      Result := 'Defence';
+    3:
+      Result := 'Hitpoints';
+    4:
+      Result := 'Ranged';
+  end;
 end;
 
 //Our quick and simple anti-ban. Could use some work.
 procedure AntiBan;
 var ran1, ran2: Integer;
 begin
-     ran1 := random(800);
+     ran1 := random(900);
      if(ran1 <= 5) then
      begin
+      SetRun(True);
       writeln('Anti-Ban Engaged.');
       ran2 := random(10);
       case(ran2) of
@@ -113,26 +140,27 @@ begin
         5: PickUpMouse;
         6: wait(1500 + randomrange(1000,3000));
         7: RandomRClick;
-        8: P07_HoverSkill('Hitpoints', randomrange(500,1500));
-        9: P07_HoverSkill('Strength', randomrange(500,1500));
+        8: HoverSkill(RandomCombatSkill, false);
+        9: HoverSkill(RandomCombatSkill, false);
       end;
       wait(randomrange(500,1000));
      end;
 end;
 
 begin
+  DeclarePlayers;
   SetupSRL;
-  P07_DeclarePlayer;
-  SetupP07Include;
+  SetScreenName(Players[0].Nick);
   ActivateClient;
   wait(1000);
-  if(P07_LoggedIn) then
+  if(LoggedIn) then
     Setup;
   while(GFailSafe < GFAILSAFE_THRESHOLD) do
   begin
     case (GetState) of
       0:
         begin
+          FindNormalRandoms;
           if(PICKUP_FEATHERS) then
             CheckLoot;
           AttackChicken;
@@ -145,7 +173,7 @@ begin
         end;
       2:
         begin
-          P07_LoginPlayer;
+          LoginPlayer;
           wait(randomrange(300,800));
           Setup;
         end;
