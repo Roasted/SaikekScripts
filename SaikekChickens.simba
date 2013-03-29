@@ -1,0 +1,160 @@
+program SaikekChickens;
+{$DEFINE SMART8}
+{$I SRL/SRL.Simba}
+{$I P07Include.Simba}
+
+//DO NOT EDIT THESE UNLESS YOU KNOW WHAT YOU ARE EDITING!
+var
+  GFailSafe: Integer;
+const
+  HPCOLOUR = 65280;
+  CHICKENCOLOUR1 = 1682130;
+  CHICKENCOLOUR2 = 1056403;
+  FEATHERCOLOUR2 = 9472;
+  GFAILSAFE_THRESHOLD = 25;
+  PICKUP_FEATHERS = True; //Change 'True' to 'False' if you do not wish to pick up feathers.
+
+//Begin User-config. Please provide your username and password.
+procedure P07_DeclarePlayer;
+begin
+  P07_PlayerName := ''; //Your username here.
+  P07_PlayerPass := ''; //Your password here.
+end;
+//End User-config
+
+//Simple function which checks for HPCOLOUR in a defined area.
+//May bug out when multiple players are in area.
+function InCombat: Boolean;
+var x, y: Integer;
+begin
+  if(FindColor(x, y, HPCOLOUR, 200, 100, 300, 200)) then
+    Result := true
+  else
+    Result := false
+end;
+
+//Searches for and attacks seagull, easy enough? Searches for GULLCOLOUR1 and GULLCOLOUR2
+//Provides for two failsafes when searching and waiting on combat to begin.
+procedure AttackChicken;
+var x, y, failsafe: Integer;
+begin
+  if(not InCombat) then
+  begin
+    if(P07_FindObjCustom(x, y, ['ttack', 'hicken'], [CHICKENCOLOUR1, CHICKENCOLOUR2], 7)) then
+    begin
+      GFailSafe := 0;
+      P07_MouseBox(x, y, x, y, mouse_left);
+      repeat
+        wait(randomrange(300,800));
+        inc(failsafe);
+      until((InCombat) or (failsafe >= 5));
+    end else
+    begin
+      writeln('No Chickens found. Rotating camera.');
+      P07_MakeCompassDegree(randomrange(0,360));
+      inc(GFailSafe);
+      wait(randomrange(500,1000));
+    end;
+  end;
+end;
+
+procedure CheckLoot;
+var x, y: Integer;
+begin
+  if((not InCombat) and (PICKUP_FEATHERS)) then
+  begin
+    if(P07_FindObjCustom(x, y, ['eather'], [FEATHERCOLOUR2], 3)) then
+    begin
+      P07_Mousebox(x, y, x, y, mouse_left);
+      wait(randomrange(1000,1500));
+    end;
+  end;
+end;
+
+//Gets our current in-game state.
+function GetState: Integer;
+begin
+  if (GFailSafe >= GFAILSAFE_THRESHOLD) then
+    Result := 3
+  else if(not P07_LoggedIn) then
+    Result := 2
+  else if(InCombat) then
+    Result := 1
+  else if(not InCombat) then
+    Result := 0
+end;
+
+//Sets camera angle to maximum and sets auto-retaliate.
+procedure Setup;
+var x, y: Integer;
+begin
+  P07_MakeCameraAngleHigh;
+  wait(randomrange(300,500));
+  P07_AutoRetaliate(true);
+  wait(randomrange(300,500));
+  P07_TabInventoryTab(4);
+  P07_MakeCompassDegree(0);
+end;
+
+//Our quick and simple anti-ban. Could use some work.
+procedure AntiBan;
+var ran1, ran2: Integer;
+begin
+     ran1 := random(800);
+     if(ran1 <= 5) then
+     begin
+      writeln('Anti-Ban Engaged.');
+      ran2 := random(10);
+      case(ran2) of
+        1: BoredHuman;
+        2: RandomRClick;
+        3: wait(1500 + randomrange(1000,3000));
+        4: BoredHuman;
+        5: PickUpMouse;
+        6: wait(1500 + randomrange(1000,3000));
+        7: RandomRClick;
+        8: P07_HoverSkill('Hitpoints', randomrange(500,1500));
+        9: P07_HoverSkill('Strength', randomrange(500,1500));
+      end;
+      wait(randomrange(500,1000));
+     end;
+end;
+
+begin
+  SetupSRL;
+  P07_DeclarePlayer;
+  SetupP07Include;
+  ActivateClient;
+  wait(1000);
+  if(P07_LoggedIn) then
+    Setup;
+  while(GFailSafe < GFAILSAFE_THRESHOLD) do
+  begin
+    case (GetState) of
+      0:
+        begin
+          if(PICKUP_FEATHERS) then
+            CheckLoot;
+          AttackChicken;
+          wait(randomrange(500,1000));
+        end;
+      1:
+        begin
+          AntiBan;
+          wait(randomrange(50,200));
+        end;
+      2:
+        begin
+          P07_LoginPlayer;
+          wait(randomrange(300,800));
+          Setup;
+        end;
+      3:
+        begin
+          break;
+        end;
+    end;
+  end;
+  writeln('FailSafe initiated! Possibly stuck or in random? Terminating script.');
+  TerminateScript;
+end.
