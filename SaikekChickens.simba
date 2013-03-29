@@ -2,6 +2,7 @@ program SaikekChickens;
 {$DEFINE SMART8}
 {$I SRL-OSR/SRL.Simba}
 
+```pascal
 var
   GFailSafe: Integer;
 const
@@ -186,3 +187,4 @@ begin
   writeln('FailSafe initiated! Possibly stuck or in random? Terminating script.');
   TerminateScript;
 end.
+```
