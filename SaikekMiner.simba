@@ -7,14 +7,14 @@ GFailSafe, SInv, Mined: Integer;
 PBox: TBox;
 STime: LongWord;
 const
-  ORECOLOUR = 1910335;   //Set this to the vein colour of your choice. Currently set to iron.
+  ORECOLOUR = 2306125;   //Set this to the vein colour of your choice. Currently set to iron.
   GASCOLOUR = 10072509;
   PSHIFT = 350;
   GTHRESHOLD = 25;
   PLAYER_NAME = ''; //Username here.
   PLAYER_PASS = ''; //Password here.
   PLAYER_NICK = ''; // 3-4 characters of your in-game name. NOT the first character.
-  M1D1 = False;     //Set to True if you would like to mine one and drop one.
+  M1D1 = True;     //Set to True if you would like to mine one and drop one.
   LOG_INT = 5;      //Interval to display a log report in minutes.
 
 procedure DeclarePlayers;
@@ -56,7 +56,6 @@ end;
 function GetState: Integer;
 var x, y: Integer;
 begin
-  FindNormalRandoms;
   if(GFailSafe >= GTHRESHOLD) then
     Result := 5
   else if(FindColorTolerance(x, y, GASCOLOUR, MSX1, MSY1, MSX2, MSY2, 3)) then
@@ -74,7 +73,7 @@ end;
 procedure MineRock;
 var x, y: Integer;
 begin
-  if(FindObjCustom(x, y, ['Mine', 'Rocks'], [ORECOLOUR], 3)) then
+  if(FindObjCustom(x, y, ['Mine', 'Rocks'], [ORECOLOUR], 5)) then
     begin
       GFailSafe := 0;
       MMouse(x, y, 3, 3);
@@ -145,6 +144,9 @@ begin
     LogInPlayer;
   Setup;
   while(GFailSafe < GTHRESHOLD) do
+  begin
+  Logger;
+  FindNormalRandoms;
    case(GetState) of
     5:
       begin
@@ -153,7 +155,6 @@ begin
     1:
       begin
       AntiBan;
-      Logger;
       wait(randomrange(50,200));
       end;
     2:
@@ -169,6 +170,7 @@ begin
       writeln('Vein is gasing! Waiting.');
       wait(randomrange(25000, 35000));
       end;
+    end;
   end;
   Log;
   WriteLn('FailSafe initilized, stuck in random or got lost.');
