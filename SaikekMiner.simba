@@ -15,7 +15,7 @@ const
   PLAYER_PASS = ''; //Password here.
   PLAYER_NICK = ''; // 3-4 characters of your in-game name. NOT the first character.
   M1D1 = False;     //Set to True if you would like to mine one and drop one.
-  LOG_INT = 1;      //Interval to display a log report in minutes.
+  LOG_INT = 5;      //Interval to display a log report in minutes.
 
 procedure DeclarePlayers;
 begin
