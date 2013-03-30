@@ -1,0 +1,176 @@
+program SaikekMiner;
+{$DEFINE SMART8}
+{$I SRL-OSR\SRL.simba}
+
+var
+GFailSafe, SInv, Mined: Integer;
+PBox: TBox;
+STime: LongWord;
+const
+  ORECOLOUR = 1910335;   //Set this to the vein colour of your choice. Currently set to iron.
+  GASCOLOUR = 10072509;
+  PSHIFT = 350;
+  GTHRESHOLD = 25;
+  PLAYER_NAME = ''; //Username here.
+  PLAYER_PASS = ''; //Password here.
+  PLAYER_NICK = ''; // 3-4 characters of your in-game name. NOT the first character.
+  M1D1 = False;     //Set to True if you would like to mine one and drop one.
+  LOG_INT = 1;      //Interval to display a log report in minutes.
+
+procedure DeclarePlayers;
+begin
+  HowManyPlayers := 1;
+  NumberOfPlayers(HowManyPlayers);
+  Players[0].Name := PLAYER_NAME;
+  Players[0].Pass := PLAYER_PASS;
+  Players[0].Nick := PLAYER_NICK;
+  Players[0].Active := True;
+end;
+
+procedure Setup;
+begin
+  KeyDown(VK_UP);
+  wait(randomrange(1500,2500));
+  KeyUp(VK_UP);
+  SInv := InvCount;
+  PBox := IntToBox(200,114,312,225);
+  STime := GetSystemTime;
+end;
+
+function IsMining: Boolean;
+begin
+  Result := (AveragePixelShift(PBox, 250, 500) > PSHIFT);
+end;
+
+procedure DropAllOre;
+var i: Integer;
+begin
+    for i:= 2 to 28 do
+    if ExistsItem(i) then
+    begin
+      MouseItem(i, mouse_right);
+      WaitOptionEx('rop', 'action', ClickLeft, 150);
+    end;
+end;
+
+function GetState: Integer;
+var x, y: Integer;
+begin
+  FindNormalRandoms;
+  if(GFailSafe >= GTHRESHOLD) then
+    Result := 5
+  else if(FindColorTolerance(x, y, GASCOLOUR, MSX1, MSY1, MSX2, MSY2, 3)) then
+    Result := 4
+  else if(IsMining) then
+    Result := 1
+  else if((InvCount > 1) and(M1D1)) then
+    Result := 2
+  else if((InvFull) and (not M1D1)) then
+    Result := 2
+  else if(not IsMining) then
+    Result := 3
+end;
+
+procedure MineRock;
+var x, y: Integer;
+begin
+  if(FindObjCustom(x, y, ['Mine', 'Rocks'], [ORECOLOUR], 3)) then
+    begin
+      GFailSafe := 0;
+      MMouse(x, y, 3, 3);
+      wait(randomrange(50, 80));
+      if(pos('ake', GetUpText) = 0) then
+        ClickMouse2(mouse_left);
+      wait(randomrange(300,1500));
+    end
+    else
+      inc(GFailSafe);
+end;
+
+procedure AntiBan;
+var ran1, ran2: Integer;
+begin
+     ran1 := random(1000);
+     if(ran1 <= 8) then
+     begin
+      SetRun(True);
+      writeln('Anti-Ban Engaged.');
+      ran2 := random(10);
+      case(ran2) of
+        1: BoredHuman;
+        2: RandomRClick;
+        3: wait(1500 + randomrange(1000,3000));
+        4: BoredHuman;
+        5: PickUpMouse;
+        6: wait(1500 + randomrange(1000,3000));
+        7: RandomRClick;
+        8: HoverSkill('Mining', false);
+      end;
+      wait(randomrange(500,1000));
+     end;
+end;
+procedure Log;
+var Avg, RT: Extended;
+begin
+  if(Mined <= 0) then
+    exit;
+  Writeln('------SaikekMiner Log Report-----');
+  Writeln('Running for: ' + IntToStr(GetTimeRunning / 60000) + ' minutes.');
+  Writeln('Mined: ' + IntToStr(Mined) + ' veins.');
+  RT := GetTimeRunning / 60000;
+  Avg := Mined / RT;
+  Writeln('Average: '+ toStr(Avg) + ' veins / minute.');
+end;
+
+procedure Logger;
+begin
+ if(InvCount > SInv) then
+ begin
+  Mined := (InvCount - SInv) + Mined;
+  SInv := InvCount;
+ end;
+ if((GetSystemTime - STime) >= (LOG_INT * 60000)) then
+ begin
+  STime := GetSystemTime;
+  Log;
+ end
+end;
+
+begin
+  DeclarePlayers;
+  SetupSRL;
+  SetScreenName(Players[0].Nick);
+  ActivateClient;
+  if(not LoggedIn) then
+    LogInPlayer;
+  Setup;
+  while(GFailSafe < GTHRESHOLD) do
+   case(GetState) of
+    5:
+      begin
+        break;
+      end;
+    1:
+      begin
+      AntiBan;
+      Logger;
+      wait(randomrange(50,200));
+      end;
+    2:
+      begin
+        DropAllOre;
+      end;
+    3:
+      begin
+        MineRock;
+      end;
+    4:
+      begin
+      writeln('Vein is gasing! Waiting.');
+      wait(randomrange(25000, 35000));
+      end;
+  end;
+  Log;
+  WriteLn('FailSafe initilized, stuck in random or got lost.');
+  TerminateScript;
+end.

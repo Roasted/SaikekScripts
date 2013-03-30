@@ -160,7 +160,8 @@ begin
     case (GetState) of
       0:
         begin
-          FindNormalRandoms;
+          if(not InCombat) then
+            FindNormalRandoms;
           if(PICKUP_FEATHERS) then
             CheckLoot;
           AttackChicken;
